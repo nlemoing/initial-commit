@@ -4,9 +4,10 @@ fetchCommits()
         dh.a(
             dh.g("main-body"),
             commits.map(({ commit }) => {
+                const { title, body } = parseMessage(commit.message);
                 return dh.c('div', {}, [
-                    dh.c('p', { innerText: `Message: ${commit.message}` }),
-                    dh.c('p', { innerText: `By ${commit.author.name} on ${commit.author.date}` }),
+                    title,
+                    body,
                 ])
             })
         );

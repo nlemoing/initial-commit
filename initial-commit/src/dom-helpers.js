@@ -26,5 +26,21 @@ const dh = {
      */
     a(container, children) {
         children.forEach(child => container.appendChild(child));
+    },
+    /**
+     * Create a document fragment with the specified children
+     * @param {DOMNode[]} children
+     */
+    f(children = []) {
+        const elem = document.createDocumentFragment();
+        children.forEach(child => elem.appendChild(child));
+        return elem;
+    },
+    /**
+     * Create a text node with the provided string
+     * @param {string} text
+     */
+    t(text) {
+        return document.createTextNode(text);
     }
 };
