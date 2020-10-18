@@ -50,7 +50,7 @@ function getRichTextAst(lines) {
         };
     }
 
-    function _getRichTextAst(context, index) {
+    function _getBlockAst(context, index) {
         // Parse the message body by going through the message line by line
         const children = [];
         
@@ -65,13 +65,13 @@ function getRichTextAst(lines) {
             switch (context.type) {
                 case 'document':
                     if (listItem) {
-                        [index, child] = _getRichTextAst(listItem, index);
+                        [index, child] = _getBlockAst(listItem, index);
                         children.push(child);
                     } else if (!blankLine) {
                         // Parse the paragraph when we encounter a line that isn't blank.
                         // This also updates the index so that we restart where the paragraph
                         // left off.
-                        [index, child] = _getRichTextAst({ type: 'paragraph' }, index);
+                        [index, child] = _getBlockAst({ type: 'paragraph' }, index);
                         children.push(child);
                     }
                     break;
@@ -106,9 +106,9 @@ function getRichTextAst(lines) {
                         // If it's a higher indent, make a child list
                         // Otherwise, it's the same indent and marker, so make a list item
                         if (indentationDiff > 0) {
-                            [index, child] = _getRichTextAst(listItem, index);
+                            [index, child] = _getBlockAst(listItem, index);
                         } else {
-                            [index, child] = _getRichTextAst(
+                            [index, child] = _getBlockAst(
                                 Object.assign({}, listItem, {
                                     type: 'listItem',
                                     firstLine: true,
@@ -142,8 +142,142 @@ function getRichTextAst(lines) {
         return [index, Object.assign({ children }, context)];
     }
 
-    // Start off in document contex at the first line.
-    const [_, ast] = _getRichTextAst({ type: 'document' }, 0);
+    // Start off in document context at the first line.
+    const [_, blockAst] = _getBlockAst({ type: 'document' }, 0);
+
+    // Once we have the block structure AST, run some post-processing
+    // to combine adjacent 'line' items and then create the inline AST
+    const SYMBOLS = {
+        '**': 'bold',
+        '__': 'bold',
+        '*': 'emphasis',
+        '_': 'emphasis',
+        '`': 'codeFence',
+    };
+    // A link in Markdown has the form [text](link), but the regex is hard
+    // to read because of all the escapes and special characters.
+    const linkRegex = /^\[(?<linkText>.*)\]\((?<linkHref>.*)\)/;
+    function _getInlineAst(ast) {
+        // The way this code is laid out actually ends up being a bit
+        // backwards since the 'line' nodes are only processed after they
+        // are combined in the parent node even though this code comes
+        // before the combination step. Rest assured that it all works out.
+        if (ast.type === 'line') {
+            // We'll handle all the inline stuff by keeping a stack of
+            // special symbols that represent various inline rich text
+            // features.
+            const stack = [{ type: 'line', symbol: '', children: [] }];
+            let index = 0;
+            let buffer = '';
+            while (index < ast.line.length) {
+                // Check for a link first using the regex since it's not
+                // as cut and dry to handle it using our character by 
+                // character approach.
+                const linkMatch = ast.line.slice(index).match(linkRegex);
+                if (linkMatch) {
+                    const { linkText, linkHref } = linkMatch.groups;
+                    stack[stack.length - 1].children.push({ 
+                        type: 'text',
+                        buffer,
+                        children: []
+                    }, {
+                        type: 'link',
+                        linkText,
+                        linkHref,
+                        children: []
+                    });
+                    buffer = '';
+                    index += linkMatch[0].length;
+                    continue;
+                }
+
+                // Find the first matching symbol that starts the line, if there
+                // is one.
+                const symbol = Object.keys(SYMBOLS).reduce((match, symbol) => {
+                    if (match) return match;
+                    if (ast.line.slice(index).startsWith(symbol)) return symbol;
+                    return null;
+                }, null);
+
+                if (symbol === stack[stack.length - 1].symbol) {
+                    // If the symbol matches the top of the stack, we want to
+                    // store the existing buffer and exit the current context 
+                    if (buffer) { 
+                        stack[stack.length - 1].children.push({ 
+                            type: 'text',
+                            buffer,
+                            children: []
+                        });
+                    }
+                    const childNode = stack.pop();
+                    stack[stack.length - 1].children.push(childNode);
+                    buffer = '';
+                } else if (symbol) {
+                    // If the symbol doesn't match, that means we want to enter
+                    // a new context. Store the existing buffer on the stack
+                    // and clear it. Then, push a new context onto the stack.
+                    if (buffer) { 
+                        stack[stack.length - 1].children.push({ 
+                            type: 'text',
+                            buffer,
+                            children: []
+                        });
+                    }
+                    stack.push({
+                        type: SYMBOLS[symbol],
+                        symbol,
+                        children: []
+                    });
+                    buffer = '';
+                } else {
+                    // If no symbol was matched, add the first character to the buffer
+                    buffer += ast.line[index];
+                }
+                
+                index++;
+            }
+            // At the very end, unwind any remaining symbols that didn't match and
+            // treat them as regular text.
+            if (buffer) {
+                stack[stack.length - 1].children.push({
+                    type: 'text',
+                    buffer,
+                    children: []
+                });
+            }
+            while (stack.length > 1) {
+                const child = stack.pop();
+                stack[stack.length - 1].children.push({ 
+                    type: 'text', 
+                    buffer: child.symbol,
+                    children: child.children
+                });
+            }
+            return stack[0];
+        }
+
+        // Process the children by combining any adjacent line items,
+        // then doing recursion
+        ast.children = (ast.children || [])
+            .reduce((children, child) => {
+                if (
+                    children.length &&
+                    children[children.length - 1].type === 'line' &&
+                    child.type === 'line'
+                ) {
+                    // Prepend a space before each new line we add
+                    children[children.length - 1].line += ` ${child.line}`;
+                } else {
+                    children.push(child);
+                }
+                return children;
+            }, [])
+            .map(_getInlineAst);
+        return ast;
+    }
+
+    const ast = _getInlineAst(blockAst);
+
     return ast;
 }
 
@@ -151,12 +285,12 @@ function getHtmlFromAst(ast) {
     // To create the HTML, we'll go through the AST recursively and
     // use the DOM helpers to create the appropriate DOM node for each
     // type of AST node.
-    const children = ast.children
-        ? ast.children.map(getHtmlFromAst)
-        : [];
+
+    const children = ast.children.map(getHtmlFromAst);
+
     switch (ast.type) {
-        case 'line':
-            return dh.t(ast.line + " ");
+        case 'text':
+            return dh.t(ast.buffer);
         case 'paragraph':
             return dh.c('p', {}, children);
         case 'unorderedList':
@@ -165,6 +299,15 @@ function getHtmlFromAst(ast) {
             return dh.c('ol', {}, children);
         case 'listItem':
             return dh.c('li', {}, children);
+        case 'bold':
+            return dh.c('b', {}, children);
+        case 'emphasis':
+            return dh.c('em', {}, children);
+        case 'codeFence':
+            return dh.c('code', {}, children);
+        case 'link':
+            return dh.c('a', { href: ast.linkHref }, [dh.t(ast.linkText)]);
+        case 'line':
         case 'document':
             return dh.f(children);
         default:
