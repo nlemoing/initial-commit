@@ -5,8 +5,20 @@
     <script src="./src/dom-helpers.js"></script>
     <script src="./src/gh-api.js"></script>
     <script src="./src/message-parser.js"></script>
+    <link href="./styles.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="main-body"></div>
+    <div id="header" class="info header">
+        <h1 id="title-placeholder">loading...</h1>
+    </div>
+    <div class="content">
+        <div id="commit-messages" class="commit-messages"></div>
+        <div id="links" class="links"></div>
+    </div>
+    <div id="footer" class="info footer">
+        <p>Initial commit is a project by <a href="https://lemoing.ca">Nick Lemoing</a>.</p>
+        <p>Check out the source on <a href="https://github.com/nlemoing/initial-commit">GitHub</a>.</p>
+    </div>
 </body>
 <script src="./src/index.js"></script>

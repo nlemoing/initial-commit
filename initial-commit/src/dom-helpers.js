@@ -15,7 +15,7 @@ const dh = {
      */
     c(type, params = {}, children = []) {
         const elem = document.createElement(type);
-        Object.entries(params).forEach(([param, value]) => elem[param] = value);
+        Object.entries(params).forEach(([param, value]) => elem.setAttribute(param, value));
         children.forEach(child => elem.appendChild(child));
         return elem;
     },

@@ -1,0 +1,60 @@
+body {
+    font-size: 1.1em;
+    font-family: 'Open Sans', sans-serif;
+    margin: 0;
+    display: flex;
+	min-height: 100vh;
+	flex-direction: column;
+}
+
+code {
+    background-color: #ccc;
+    padding: 0 0.25em;
+    border-radius: 0.25em;
+}
+
+.info {
+    text-align: center;
+    padding: 20px 0;
+    background-color: #222;
+    color: #eee;
+}
+
+.info h1, .info p {
+    margin: 0;
+}
+
+.info a {
+    color: #eee;
+}
+
+.content {
+    margin: 20px 0;
+    flex: 1;
+}
+
+.commit-messages {
+    margin: auto;
+    max-width: 60ch;
+}
+
+.commit-title {
+    margin-bottom: 0.25em;
+}
+
+.commit-author {
+    font-size: 0.9em;
+    margin-top: 0.25em;
+    color: #444;
+}
+
+.commit-changes-link {
+    font-size: 0.8em;
+}
+
+.links {
+    display: flex;
+    justify-content: space-between;
+    max-width: 40ch;
+    margin: auto;
+}

@@ -78,7 +78,40 @@ const {
         }).catch(() => []);
     }
 
-    const fetchCommits = () => countCommits().then(fetchCommitPage);
+    function projectMetadata(commitCount) {
+
+        // Build URLs for the next and previous pages by adding modifying
+        // the page paramter. This preserves any other search params that
+        // were already passed in.
+        const nextParams = new URLSearchParams(
+            Object.assign({}, overrides, { page: parseInt(params.page) + 1 })
+        );
+        const prevParams = new URLSearchParams(
+            Object.assign({}, overrides, { page: parseInt(params.page) - 1 })
+        );
+    
+        const firstPage = 1;
+        const lastPage = Math.floor(commitCount / params.perPage) + firstPage;
+    
+        return {
+            nextLink: params.page < lastPage 
+                ? new URL(`?${nextParams.toString()}`, window.location)
+                : null,
+            prevLink: params.page > firstPage
+                ? new URL(`?${prevParams.toString()}`, window.location)
+                : null,
+            repo: params.repo,
+            owner: params.owner,
+            page: params.page,
+            lastPage,
+        };
+    }
+
+    const fetchCommits = () => countCommits()
+        .then(commitCount => Promise.all([
+                fetchCommitPage(commitCount),
+                projectMetadata(commitCount)
+        ]));
 
     return {
         fetchCommits,
