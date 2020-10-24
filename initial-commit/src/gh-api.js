@@ -1,5 +1,6 @@
 const {
     fetchCommits,
+    fetchCommit
 } = (() => {
     const GH_API = "https://api.github.com";
     const defaults = {
@@ -113,8 +114,14 @@ const {
                 projectMetadata(commitCount)
         ]));
 
+    const fetchCommit = sha => fetch(
+        `${COMMIT_API}/${sha}`,
+        { headers }
+    ).then(response => response.json());
+
     return {
         fetchCommits,
+        fetchCommit,
     }
 })();
 

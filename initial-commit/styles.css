@@ -48,13 +48,17 @@ code {
     color: #444;
 }
 
-.commit-changes-link {
-    font-size: 0.8em;
-}
-
 .links {
     display: flex;
     justify-content: space-between;
     max-width: 40ch;
     margin: auto;
+}
+
+.file-addition-count {
+    color: green;
+}
+
+.file-deletion-count {
+    color: red;
 }

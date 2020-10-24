@@ -13,30 +13,60 @@ function parseDate(dateString) {
     }
 }
 
+function createChangesElement({ files }) {
+    fileChanges = files.map(({ filename, additions, deletions }) => {
+        return dh.c('p', {}, [
+            dh.c('b', {}, [dh.t(filename)]),
+            dh.t(': '),
+            dh.c('span', { class: 'file-addition-count' }, [dh.t(`+${additions}`)]),
+            dh.t(', '),
+            dh.c('span', { class: 'file-deletion-count' }, [dh.t(`-${deletions}`)])
+        ]);
+    })
+    return dh.c('div', { class: 'commit-changes' }, fileChanges);
+}
+
 // Use the DOM helpers to display the commits
 fetchCommits()
     .then(([ commits, meta ]) => {
         dh.a(
             dh.g("commit-messages"),
-            commits.map(({ commit }) => {
-                const sha = new URL(commit.url).pathname.split('/').pop();
+            commits.map(({ commit, sha }) => {
+                const toggleChangesButton = dh.c(
+                    'button',
+                    { class: 'see-changes-button'},
+                    [dh.t('See changes')]
+                );
+                let changes, hidden = true;
+                toggleChangesButton.addEventListener('click', () => {
+                    hidden = !hidden;
+                    let changesPromise;
+                    if (!changes) {
+                        changesPromise = fetchCommit(sha).then(r => {
+                            changes = createChangesElement(r);
+                            toggleChangesButton.after(changes);
+                        });
+                    } else {
+                        changesPromise = Promise.resolve();
+                    }
+
+                    changesPromise.then(() => {
+                        const style = `display: ${hidden ? 'none' : 'inherit'};`;
+                        changes.setAttribute('style', style)
+                        toggleChangesButton.innerText = hidden ? 'Show changes' : 'Hide changes'
+                    });
+                });
+
                 const { title, body } = parseMessage(commit.message);
                 title.setAttribute('class', 'commit-title');
                 const { date, time } = parseDate(commit.author.date);
-                return dh.c('div', { class: 'commit-message' }, [
+                return dh.c('div', { class: 'commit-message', id: `commit-${sha}` }, [
                     title,
                     dh.c('p', { class: 'commit-author' }, [dh.t(
                         `Written by ${commit.author.name} on ${date} at ${time}`
                     )]),
                     body,
-                    dh.c(
-                        'a', 
-                        {
-                            href: `https://github.com/${meta.owner}/${meta.repo}/commit/${sha}`,
-                            class: "commit-changes-link",
-                        },
-                        [dh.t('See changes')]
-                    ),
+                    toggleChangesButton,
                     dh.c('hr'),
                 ])
             })
