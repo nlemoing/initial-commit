@@ -14,14 +14,18 @@ function parseDate(dateString) {
 }
 
 function createChangesElement({ files }) {
-    fileChanges = files.map(({ filename, additions, deletions }) => {
-        return dh.c('p', {}, [
+    fileChanges = files.map(({ filename, additions, deletions, patch }) => {
+        const heading = dh.c('p', {}, [
             dh.c('b', {}, [dh.t(filename)]),
             dh.t(': '),
             dh.c('span', { class: 'file-addition-count' }, [dh.t(`+${additions}`)]),
             dh.t(', '),
             dh.c('span', { class: 'file-deletion-count' }, [dh.t(`-${deletions}`)])
         ]);
+
+        const changes = parsePatch(patch);
+
+        return dh.c('div', {}, [ heading, changes ]);
     })
     return dh.c('div', { class: 'commit-changes' }, fileChanges);
 }
