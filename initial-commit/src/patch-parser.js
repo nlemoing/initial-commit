@@ -80,7 +80,22 @@ function getPatchTree(patchString) {
         const changes = [];
 
         let oldLine = oldStart, newLine = newStart;
-        let precedingRemoval = null;
+        let currentBlock = null;
+        const unwindCurrentBlock = () => {
+            if (!currentBlock) return;
+            const { additions, deletions } = currentBlock;
+
+            const upperBound = Math.max(additions.length, deletions.length);
+            for (let j = 0; j < upperBound; j++) {
+                changes.push([
+                    deletions[j] || null,
+                    additions[j] || null,
+                    true
+                ]);
+            }
+
+            currentBlock = null;
+        }
         for (let i = lb; i < ub; i++) {
             const l = lines[i];
             // These lines show up if we get a patch that ends the file
@@ -91,21 +106,15 @@ function getPatchTree(patchString) {
 
             const type = l[0], change = l.slice(1);
             if (type === "-") {
-                // Instead of pushing removals right away, we store them in
-                // precedingRemoval so that if an addition follows, we can
-                // match the two.
-                if (precedingRemoval) changes.push([precedingRemoval, null, true]);
-                precedingRemoval = { line: oldLine++, change };
+                // Instead of pushing deletions right away, we store them in
+                // the current block and push after we've seen all the additions.
+                if (!currentBlock) currentBlock = { additions: [], deletions: [] }
+                currentBlock.deletions.push({ line: oldLine++, change });
             } else if (type === "+") {
-                changes.push([
-                    precedingRemoval,
-                    { line: newLine++, change },
-                    true
-                ]);
-                precedingRemoval = null;
+                if (!currentBlock) currentBlock = { additions: [], deletions: [] }
+                currentBlock.additions.push({ line: newLine++, change });
             } else if (type === " ") {
-                if (precedingRemoval) changes.push([precedingRemoval, null, true]);
-                precedingRemoval = null;
+                unwindCurrentBlock();
                 changes.push([
                     { line: oldLine++, change },
                     { line: newLine++, change },
@@ -116,7 +125,8 @@ function getPatchTree(patchString) {
             }
         }
 
-        if (precedingRemoval) changes.push([precedingRemoval, null]);
+        // Clean up any leftovers
+        unwindCurrentBlock();
 
         // Some sanity checks to make sure that the patch format is valid.
         // This also serves as a sanity check for our own code, since that's a
