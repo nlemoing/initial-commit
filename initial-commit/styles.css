@@ -33,7 +33,14 @@ code {
     flex: 1;
 }
 
-.commit-messages {
+.commits {
+    margin: auto;
+    width: 95%;
+    width: calc(100% - 20px);
+    max-width: 120ch;
+}
+
+.commit-message {
     margin: auto;
     max-width: 60ch;
 }
@@ -61,4 +68,54 @@ code {
 
 .file-deletion-count {
     color: red;
+}
+
+.diff-viewer {
+    border-spacing: 0;
+    border: 1px solid #222;
+    width: 100%;
+}
+
+.patch-header-row {
+    background-color: #222;
+    color: white;
+    text-align: center;
+}
+
+.patch-change-segment {
+    padding: 0.2rem;
+    white-space: pre-wrap;
+    font-size: 0.9rem;
+    font-family: monospace;
+    vertical-align: text-top;
+}
+
+.patch-change-segment.empty {
+    background-color: #ccc;
+}
+
+.patch-change-segment.added {
+    background-color: lightgreen;
+}
+
+.patch-change-segment.line-number.added::before {
+    content: '+';
+    color: grey;
+}
+
+.patch-change-segment.removed {
+    background-color: lightpink;
+}
+
+.patch-change-segment.line-number.removed::before {
+    content: '-';
+    color: grey;
+}
+
+.patch-change-segment.line-number.unchanged::before {
+    content: ' ';
+}
+
+.patch-change-segment.line-number {
+    color: grey;
 }

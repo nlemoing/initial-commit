@@ -149,6 +149,45 @@ function getPatchTree(patchString) {
 }
 
 function getHtmlFromPatchTree(patches) {
-    console.log(patches);
-    return dh.f();
+    const getHtmlFromPatch = p => dh.f([
+        dh.c('tr', { class: 'patch-header-row' }, [
+            dh.c('td', { colspan: '4' }, [dh.t(p.header)])
+        ]),
+        ...p.changes.map(c => {
+            const createLineSegment = (change, leftSide) => {
+                let className;
+                let contents = change ? change.change : '';
+                let lineNumber = change ? change.line : '';
+                if (change && c[2] && leftSide) {
+                    className = 'removed';
+                } else if (change && c[2]) {
+                    className = 'added';
+                } else if (change) {
+                    className = 'unchanged';
+                } else {
+                    className = 'empty';
+                }
+
+                return [
+                    dh.c('td', { class: `patch-change-segment line-number ${className}`}, [dh.t(lineNumber)]),
+                    dh.c('td', { class: `patch-change-segment contents ${className}` }, [dh.t(contents)])
+                ];
+            }
+
+            return dh.c('tr', { class: 'patch-change-row' }, [
+                ...createLineSegment(c[0], true),
+                ...createLineSegment(c[1], false)
+            ]);
+        })
+    ]);
+
+    return dh.c('table', { class: 'diff-viewer' }, [
+        dh.c('colgroup', {}, [
+            dh.c('col'),
+            dh.c('col', { style: 'width: 50%; '}),
+            dh.c('col'),
+            dh.c('col', { style: 'width: 50%; '})
+        ]),
+        dh.c('tbody', {}, patches.map(getHtmlFromPatch))
+    ])
 }

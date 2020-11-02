@@ -34,7 +34,7 @@ function createChangesElement({ files }) {
 fetchCommits()
     .then(([ commits, meta ]) => {
         dh.a(
-            dh.g("commit-messages"),
+            dh.g("commits"),
             commits.map(({ commit, sha }) => {
                 const toggleChangesButton = dh.c(
                     'button',
@@ -48,7 +48,7 @@ fetchCommits()
                     if (!changes) {
                         changesPromise = fetchCommit(sha).then(r => {
                             changes = createChangesElement(r);
-                            toggleChangesButton.after(changes);
+                            dh.g(`commit-message-${sha}`).after(changes);
                         });
                     } else {
                         changesPromise = Promise.resolve();
@@ -64,13 +64,15 @@ fetchCommits()
                 const { title, body } = parseMessage(commit.message);
                 title.setAttribute('class', 'commit-title');
                 const { date, time } = parseDate(commit.author.date);
-                return dh.c('div', { class: 'commit-message', id: `commit-${sha}` }, [
-                    title,
-                    dh.c('p', { class: 'commit-author' }, [dh.t(
-                        `Written by ${commit.author.name} on ${date} at ${time}`
-                    )]),
-                    body,
-                    toggleChangesButton,
+                return dh.c('div', { class: 'commit', id: `commit-${sha}` }, [
+                    dh.c('div', { class: 'commit-message', id: `commit-message-${sha}` }, [
+                        title,
+                        dh.c('p', { class: 'commit-author' }, [dh.t(
+                            `Written by ${commit.author.name} on ${date} at ${time}`
+                        )]),
+                        body,
+                        toggleChangesButton,
+                    ]),
                     dh.c('hr'),
                 ])
             })
